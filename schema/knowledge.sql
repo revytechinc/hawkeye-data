@@ -14,7 +14,7 @@
 PRAGMA journal_mode = DELETE;
 PRAGMA synchronous = FULL;
 PRAGMA foreign_keys = ON;
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 PRAGMA application_id = 0x484B5945; -- 'HKYE'
 
 CREATE TABLE meta (
@@ -23,12 +23,15 @@ CREATE TABLE meta (
 );
 
 CREATE TABLE documents (
-    rowid    INTEGER PRIMARY KEY,
-    id       TEXT    NOT NULL UNIQUE,
-    title    TEXT    NOT NULL,
-    category TEXT,
-    path     TEXT,
-    body     TEXT    NOT NULL
+    rowid         INTEGER PRIMARY KEY,
+    id            TEXT    NOT NULL UNIQUE,
+    title         TEXT    NOT NULL,
+    category      TEXT,
+    path          TEXT,
+    body          TEXT    NOT NULL,
+    source        TEXT,
+    git_rev       TEXT,
+    collected_at  TEXT
 );
 
 -- Playbooks (also known as skills): deterministic recovery procedures.

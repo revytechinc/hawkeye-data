@@ -1,0 +1,142 @@
+{
+  "built_at": "2026-08-30T21:43:19Z",
+  "chunk_max": 41943040,
+  "chunks": [
+    {
+      "bytes": 8049,
+      "count": 11,
+      "git_rev": {},
+      "id": "playbooks",
+      "path": "dist/chunks/chunk-playbooks.jsonl.gz",
+      "sha256": "1f7732c7ff1e70bae62c12369d9ad25fb7afc46a7f5a5acfe179f4cf3ecc115e",
+      "source_ids": [
+        "hawkeye"
+      ]
+    },
+    {
+      "bytes": 3202,
+      "count": 5,
+      "git_rev": {},
+      "id": "hawkeye-docs",
+      "path": "dist/chunks/chunk-hawkeye-docs.jsonl.gz",
+      "sha256": "aee9f69c343dfd50e0a12ce12be522a9660ac38a97cdd5ab2914c9a8cde7b8b9",
+      "source_ids": [
+        "hawkeye"
+      ]
+    },
+    {
+      "bytes": 580665,
+      "count": 48,
+      "git_rev": {
+        "freebsd-doc": "72442dc9c2971d5a056eb7f6e1056672a546e85e"
+      },
+      "id": "handbook",
+      "path": "dist/chunks/chunk-handbook.jsonl.gz",
+      "sha256": "8f83e5d5f842e9f75250ce0bdf81eff98fd68a884ce239b2574aed3471f71604",
+      "source_ids": [
+        "freebsd-doc"
+      ]
+    },
+    {
+      "bytes": 556659,
+      "count": 83,
+      "git_rev": {
+        "freebsd-doc": "72442dc9c2971d5a056eb7f6e1056672a546e85e"
+      },
+      "id": "books-other",
+      "path": "dist/chunks/chunk-books-other.jsonl.gz",
+      "sha256": "178c38876dbfab8140ef4c7bd1722e2d7e09eaa43ac7a24f90836753dd0cedb6",
+      "source_ids": [
+        "freebsd-doc"
+      ]
+    },
+    {
+      "bytes": 389405,
+      "count": 42,
+      "git_rev": {
+        "freebsd-doc": "72442dc9c2971d5a056eb7f6e1056672a546e85e"
+      },
+      "id": "articles",
+      "path": "dist/chunks/chunk-articles.jsonl.gz",
+      "sha256": "47fb571a7760a0201a5b59eb9b81aeed492a6ae0b00ea02c23c54e2bb009f32b",
+      "source_ids": [
+        "freebsd-doc"
+      ]
+    },
+    {
+      "bytes": 432771,
+      "count": 157,
+      "git_rev": {
+        "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+      },
+      "id": "man8",
+      "path": "dist/chunks/chunk-man8.jsonl.gz",
+      "sha256": "9ac94a1224e152ca86144a99609ba71fc1064cc67a105a22a95122fb80aabb20",
+      "source_ids": [
+        "freebsd-src"
+      ]
+    },
+    {
+      "bytes": 169470,
+      "count": 45,
+      "git_rev": {
+        "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+      },
+      "id": "man7",
+      "path": "dist/chunks/chunk-man7.jsonl.gz",
+      "sha256": "523c3e54446a10e4f716a2470331dc933271164c2a82cb3092f39bc722e29e89",
+      "source_ids": [
+        "freebsd-src"
+      ]
+    },
+    {
+      "bytes": 214096,
+      "count": 69,
+      "git_rev": {
+        "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+      },
+      "id": "man5",
+      "path": "dist/chunks/chunk-man5.jsonl.gz",
+      "sha256": "0a367e659b85960b9e03a291e88a9d4c8f5e2bed5575884346728702ace2e352",
+      "source_ids": [
+        "freebsd-src"
+      ]
+    },
+    {
+      "bytes": 1082890,
+      "count": 810,
+      "git_rev": {
+        "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+      },
+      "id": "man4",
+      "path": "dist/chunks/chunk-man4.jsonl.gz",
+      "sha256": "3422db5179c80e3c0e6807c6706656870e7e7ae316fff19989bb923ad5e60764",
+      "source_ids": [
+        "freebsd-src"
+      ]
+    },
+    {
+      "bytes": 49288,
+      "count": 2,
+      "git_rev": {
+        "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+      },
+      "id": "updating",
+      "path": "dist/chunks/chunk-updating.jsonl.gz",
+      "sha256": "51ce6bd28a876ca9e6dcf4911a6533469646f73b1478bc3834e3f4fb8f4c5d74",
+      "source_ids": [
+        "freebsd-src"
+      ]
+    }
+  ],
+  "format": "hawkeye-chunks-v1",
+  "git_rev": {
+    "freebsd-doc": "72442dc9c2971d5a056eb7f6e1056672a546e85e",
+    "freebsd-src": "a311bd18a6fb57c6d3a19ab5bb53bb6f1c5fd056"
+  },
+  "source_ids": [
+    "freebsd-doc",
+    "freebsd-src",
+    "hawkeye"
+  ]
+}

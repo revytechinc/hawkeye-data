@@ -7,3 +7,7 @@
 *~
 *.swp
 .DS_Store
+
+# Harvest working trees (too large / not the git artifact)
+/cache/
+/corpus/collected/

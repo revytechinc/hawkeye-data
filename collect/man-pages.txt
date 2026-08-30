@@ -1,0 +1,65 @@
+# Rescue-relevant man page basenames (section guessed from typical FreeBSD layout).
+# collect.sh sparse-checkouts share/man/man{4,5,7,8} plus OpenZFS and colocated sbin
+# sources. extract.sh keeps pages whose basename (minus section) is in this list
+# OR that live under share/man/man{4,5,7,8} or sys/contrib/openzfs/man (full
+# English mdoc for those trees — this list is the minimum rescue set).
+zfs
+zpool
+zfsprops
+zpoolconcepts
+zpoolprops
+zpool-features
+geli
+geom
+gpart
+gmirror
+gstripe
+gconcat
+dump
+restore
+fsck
+fsck_ufs
+fsck_ffs
+newfs
+mount
+umount
+bectl
+loader
+loader.conf
+boot
+rc
+rc.conf
+rc.subr
+jail
+jexec
+jls
+ifconfig
+dhclient
+dhclient.conf
+route
+kldload
+kldstat
+sysctl
+sysctl.conf
+cam
+camcontrol
+nvme
+nvmecontrol
+ada
+mdconfig
+dd
+nand
+geom_eli
+bhyve
+bhyvectl
+vmrun
+pf
+pf.conf
+pfctl
+ipfw
+natd
+resolv.conf
+crontab
+periodic
+syslogd
+newsyslog

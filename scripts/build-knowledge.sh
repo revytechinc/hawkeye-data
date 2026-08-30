@@ -1,6 +1,6 @@
 #!/bin/sh
-# Build knowledge.sqlite from markdown sources.
-# POSIX sh + sqlite3(1). No Python, no Go.
+# Build knowledge.sqlite from playbooks, docs, and corpus/collected.
+# POSIX sh + sqlite3(1) + python3 (corpus load / FTS finalize).
 # Copyright (c) 2026, REVYTECH, Inc.  BSD 3-Clause.
 set -eu
 
@@ -184,7 +184,7 @@ for f in "$DOCS"/*.md; do
 		category=${category:-docs}
 		rel="docs/$base"
 		{
-			printf "INSERT INTO documents (id, title, category, path, body) VALUES ("
+			printf "INSERT INTO documents (id, title, category, path, body, source, git_rev, collected_at) VALUES ("
 			printf '%s' "$id" | sql_quote
 			printf ', '
 			printf '%s' "$title" | sql_quote
@@ -195,7 +195,7 @@ for f in "$DOCS"/*.md; do
 			printf ', '
 			# whole file is the body when there is no front matter
 			sql_quote < "$f"
-			printf ");\n"
+			printf ", 'hawkeye', '', '');\n"
 		} >> "$load_sql"
 		n_doc=$((n_doc + 1))
 		continue
@@ -203,7 +203,7 @@ for f in "$DOCS"/*.md; do
 	[ -n "$category" ] || category=docs
 	rel="docs/$base"
 	{
-		printf "INSERT INTO documents (id, title, category, path, body) VALUES ("
+		printf "INSERT INTO documents (id, title, category, path, body, source, git_rev, collected_at) VALUES ("
 		printf '%s' "$id" | sql_quote
 		printf ', '
 		printf '%s' "$title" | sql_quote
@@ -213,7 +213,7 @@ for f in "$DOCS"/*.md; do
 		printf '%s' "$rel" | sql_quote
 		printf ', '
 		body_get "$f" | sql_quote
-		printf ");\n"
+		printf ", 'hawkeye', '', '');\n"
 	} >> "$load_sql"
 	n_doc=$((n_doc + 1))
 done
@@ -224,35 +224,17 @@ if [ "$n_play" -lt 1 ]; then
 fi
 
 sqlite3 "$OUT" < "$load_sql"
-
-# Rebuild FTS from external content, then freeze the file for RO/immutable.
-built=${SOURCE_DATE_EPOCH:-}
-if [ -n "$built" ]; then
-	built=$(date -u -d "@$built" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
-else
-	built=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-fi
-
-sqlite3 "$OUT" <<SQL
-INSERT INTO playbooks_fts(rowid, title, when_to_use, body, commands, danger_flags)
-  SELECT rowid, title, when_to_use, body, commands, danger_flags FROM playbooks;
-INSERT INTO documents_fts(rowid, title, category, body)
-  SELECT rowid, title, category, body FROM documents;
-INSERT INTO meta(key, value) VALUES
-  ('schema_version', '1'),
-  ('corpus_id', 'hawkeye-data'),
-  ('built_at', '$(printf '%s' "$built")'),
-  ('playbook_count', '$(printf '%s' "$n_play")'),
-  ('document_count', '$(printf '%s' "$n_doc")'),
-  ('fts', 'mandatory'),
-  ('embeddings', 'optional-empty');
-INSERT INTO playbooks_fts(playbooks_fts) VALUES('optimize');
-INSERT INTO documents_fts(documents_fts) VALUES('optimize');
-PRAGMA journal_mode = DELETE;
-VACUUM;
-PRAGMA integrity_check;
-SQL
-
 rm -f "$load_sql"
 
-echo "built $OUT ($n_play playbooks, $n_doc documents)"
+# Official FreeBSD corpus (handbook, articles, man pages, UPDATING).
+if [ -d "$ROOT/corpus/collected" ] && command -v python3 >/dev/null 2>&1; then
+	python3 "$ROOT/scripts/corpus.py" load-corpus "$OUT"
+fi
+
+# Rebuild FTS, write meta (schema_version 2, source, git_rev, collected_at), VACUUM.
+if command -v python3 >/dev/null 2>&1; then
+	python3 "$ROOT/scripts/corpus.py" finalize "$OUT"
+else
+	echo "build-knowledge.sh: python3 required to finalize FTS" >&2
+	exit 1
+fi

@@ -1,1 +1,2 @@
 share/knowledge.sqlite binary
+dist/chunks/*.jsonl.gz binary
