@@ -1,0 +1,10 @@
+Hawkeye-data is the offline knowledge kit for Hawkeye (a doctor for
+FreeBSD). It ships a compact knowledge.sqlite with FTS5 playbooks and
+short recovery cheat sheets so Hawkeye still works with no network, a
+read-only root, a missing /usr, or no LLM/GPU.
+
+This is a sibling of sysutils/hawkeye (the binaries). The website is
+a separate project (hawkeye-www). Embeddings are optional and are not
+required for Tier 0 FTS.
+
+WWW: https://github.com/revytechinc/hawkeye-data

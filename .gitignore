@@ -1,0 +1,9 @@
+# sqlite sidecars (the committed DB is share/knowledge.sqlite)
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite.load.sql
+/build/
+*~
+*.swp
+.DS_Store

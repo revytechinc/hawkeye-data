@@ -1,0 +1,23 @@
+[
+{ type: install
+  message: <<EOM
+hawkeye-data is the knowledge kit (sibling of sysutils/hawkeye).
+
+  pkg copy:    ${PKG_PREFIX}/share/hawkeye/knowledge.sqlite
+  rescue copy: /boot/hawkeye/knowledge.sqlite
+
+The port installs the pkg copy only. For a missing /usr or RO rescue
+media, copy the sqlite (and optionally playbooks/) to /boot/hawkeye/:
+
+  mkdir -p /boot/hawkeye
+  cp ${PKG_PREFIX}/share/hawkeye/knowledge.sqlite /boot/hawkeye/
+
+Open immutable/RO (no -wal sidecar):
+
+  sqlite3 'file:/boot/hawkeye/knowledge.sqlite?mode=ro&immutable=1'
+
+Never put keys, passphrases, or tokens in this corpus. zfs load-key
+and geli attach are console-only; secrets must not go through an LLM.
+EOM
+}
+]
