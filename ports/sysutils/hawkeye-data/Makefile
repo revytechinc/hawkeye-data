@@ -23,10 +23,13 @@ DATADIR=	${PREFIX}/share/hawkeye
 do-install:
 	${MKDIR} ${STAGEDIR}${DATADIR}/playbooks \
 		${STAGEDIR}${DATADIR}/schema \
-		${STAGEDIR}${DATADIR}/docs
+		${STAGEDIR}${DATADIR}/docs \
+		${STAGEDIR}${DATADIR}/notices
 	${INSTALL_DATA} ${WRKSRC}/share/knowledge.sqlite ${STAGEDIR}${DATADIR}
 	${INSTALL_DATA} ${WRKSRC}/schema/knowledge.sql ${STAGEDIR}${DATADIR}/schema
 	${INSTALL_DATA} ${WRKSRC}/README.md ${STAGEDIR}${DATADIR}
+	${INSTALL_DATA} ${WRKSRC}/SOURCES.md ${STAGEDIR}${DATADIR}
+	${INSTALL_DATA} ${WRKSRC}/notices/FREEBSD-DOC-LICENSE.txt ${STAGEDIR}${DATADIR}/notices
 	cd ${WRKSRC}/playbooks && ${COPYTREE_SHARE} . ${STAGEDIR}${DATADIR}/playbooks
 	cd ${WRKSRC}/docs && ${COPYTREE_SHARE} . ${STAGEDIR}${DATADIR}/docs
 

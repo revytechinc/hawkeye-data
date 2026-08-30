@@ -1,0 +1,107 @@
+{
+  "github_chunk_max": 41943040,
+  "github_chunk_warn": 41943040,
+  "github_file_fail": 94371840,
+  "github_file_skip_sqlite": 52428800,
+  "sources": [
+    {
+      "id": "freebsd-doc",
+      "git_url": "https://github.com/freebsd/freebsd-doc.git",
+      "cache_dir": "cache/freebsd-doc",
+      "license": "FreeBSD Documentation License",
+      "license_url": "https://www.freebsd.org/copyright/freebsd-doc-license/",
+      "kind": "adoc",
+      "sparse_paths": [
+        "documentation/content/en/books/handbook",
+        "documentation/content/en/books/faq",
+        "documentation/content/en/books/porters-handbook",
+        "documentation/content/en/books/developers-handbook",
+        "documentation/content/en/books/arch-handbook",
+        "documentation/content/en/books/fdp-primer",
+        "documentation/content/en/books/accessibility",
+        "documentation/content/en/books/design-44bsd",
+        "documentation/content/en/books/dev-model",
+        "documentation/content/en/articles"
+      ],
+      "include_globs": [
+        "**/*.adoc",
+        "**/_index.adoc"
+      ],
+      "exclude_globs": [
+        "**/*.po",
+        "**/*.png",
+        "**/*.jpg",
+        "**/*.svg"
+      ]
+    },
+    {
+      "id": "freebsd-src",
+      "git_url": "https://github.com/freebsd/freebsd-src.git",
+      "cache_dir": "cache/freebsd-src",
+      "license": "BSD-2-Clause (src); man pages may include IEEE Std 1003.1 excerpts \u2014 see notices/FREEBSD-DOC-LICENSE.txt",
+      "license_url": "https://www.freebsd.org/copyright/",
+      "kind": "mdoc",
+      "sparse_paths": [
+        "share/man/man4",
+        "share/man/man5",
+        "share/man/man7",
+        "share/man/man8",
+        "sys/contrib/openzfs/man",
+        "sbin/geli",
+        "sbin/geom",
+        "sbin/bectl",
+        "sbin/fsck",
+        "sbin/fsck_ffs",
+        "sbin/newfs",
+        "sbin/mount",
+        "sbin/umount",
+        "sbin/mdconfig",
+        "sbin/ifconfig",
+        "sbin/route",
+        "sbin/kldload",
+        "sbin/kldstat",
+        "sbin/sysctl",
+        "sbin/ipfw",
+        "sbin/dhclient",
+        "sbin/nvmecontrol",
+        "sbin/camcontrol",
+        "sbin/pfctl",
+        "sbin/dump",
+        "sbin/restore",
+        "sbin/shutdown",
+        "sbin/reboot",
+        "sbin/init",
+        "usr.sbin/jail",
+        "usr.sbin/jexec",
+        "usr.sbin/jls",
+        "usr.sbin/bhyve",
+        "usr.sbin/bhyvectl",
+        "usr.sbin/periodic",
+        "usr.sbin/syslogd",
+        "usr.sbin/newsyslog",
+        "usr.bin/crontab",
+        "usr.sbin/cron",
+        "stand/man",
+        "stand/defaults",
+        "lib/geom",
+        "usr.bin/gpart"
+      ],
+      "include_globs": [
+        "UPDATING",
+        "RELNOTES",
+        "**/*.4",
+        "**/*.5",
+        "**/*.7",
+        "**/*.8",
+        "**/*.8.in",
+        "**/*.4.in",
+        "**/*.5.in",
+        "**/*.7.in"
+      ],
+      "exclude_globs": [
+        "**/*.po"
+      ],
+      "notes": "Cone sparse-checkout also pulls repo-root files (UPDATING, RELNOTES if present). usr.bin toys are not ingested on this pass except crontab."
+    }
+  ]
+}

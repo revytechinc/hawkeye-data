@@ -12,8 +12,8 @@ Source of truth: `schema/knowledge.sql`.
 
 | Object | Role |
 |---|---|
-| `meta` | `schema_version`, `built_at`, counts |
-| `documents` | Extra docs / cheat sheets |
+| `meta` | `schema_version` (2), `built_at`, counts, `source`, `git_rev`, `collected_at` |
+| `documents` | Cheat sheets + harvested FreeBSD doc (`category`, `source`, `git_rev`, `collected_at`) |
 | `playbooks` | Deterministic procedures (skills) |
 | `skills` | VIEW alias of `playbooks` |
 | `documents_fts` | FTS5 external-content over `documents` |
@@ -23,6 +23,12 @@ Source of truth: `schema/knowledge.sql`.
 ## Playbook columns
 
 `id`, `title`, `when_to_use`, `preconditions` (JSON), `commands` (JSON array), `danger_flags` (JSON array), `rollback_notes`, `body`, `requires_rw`, `requires_net`, `requires_zfs`, `requires_ufs`, `path`.
+
+## Documents columns
+
+`id`, `title`, `category` (e.g. `docs`, `freebsd-handbook`, `freebsd-man8`), `path`, `body`, `source` (git id or `hawkeye`), `git_rev`, `collected_at`.
+
+`user_version` 2 added `source`, `git_rev`, `collected_at`. FTS5 still indexes `title`, `category`, `body` only.
 
 ## Open read-only / immutable
 
