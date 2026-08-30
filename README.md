@@ -29,7 +29,7 @@ The Hawkeye binary opens **one sqlite file** read-only and runs FTS queries (and
 
 Search order (typical):
 
-1. `HAWKEYE_KNOWLEDGE` if set (URI or filesystem path)
+1. `HAWKEYE_KNOWLEDGE_PATH` if set (URI or filesystem path)
 2. `/boot/hawkeye/knowledge.sqlite` — rescue/boot copy, survives a missing `/usr`
 3. `/usr/local/share/hawkeye/knowledge.sqlite` — pkg copy (`PREFIX` may differ)
 
