@@ -6,6 +6,7 @@ Subcommands:
   chunk     corpus + playbooks + docs -> dist/chunks/*.jsonl.gz + dist/manifest.json
   load      insert corpus/collected into an existing sqlite DB
   assemble  dist/chunks (+ playbooks via SQL from caller) -> documents in sqlite
+  finalize  FTS rebuild, optional embed fill, meta, VACUUM
 
 Copyright (c) 2026, REVYTECH, Inc.  BSD 3-Clause.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import gzip
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -958,12 +960,29 @@ def insert_playbook(conn: sqlite3.Connection, rec: dict) -> None:
     )
 
 
+def _fill_embeddings(conn: sqlite3.Connection) -> dict:
+    """Optional local-embedder fill. No-op when no embedder is configured."""
+    path = Path(__file__).resolve().parent / "embed.py"
+    if not path.is_file():
+        return {"status": "skip", "count": 0, "model": ""}
+    spec = importlib.util.spec_from_file_location("hawkeye_embed", path)
+    if spec is None or spec.loader is None:
+        return {"status": "skip", "count": 0, "model": ""}
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.fill_connection(conn, vacuum=False)
+
+
 def rebuild_fts_and_meta(conn: sqlite3.Connection, extra_meta: dict) -> None:
     # External-content FTS5: rebuild from base tables (keeps FTS in sync after schema v2).
     conn.execute("INSERT INTO playbooks_fts(playbooks_fts) VALUES('rebuild')")
     conn.execute("INSERT INTO documents_fts(documents_fts) VALUES('rebuild')")
+    # Precomputed embeddings when a local embedder is configured. Skip (empty
+    # table) is the default harvest; Tier 0 still uses FTS5.
+    emb = _fill_embeddings(conn)
     n_play = conn.execute("SELECT COUNT(*) FROM playbooks").fetchone()[0]
     n_doc = conn.execute("SELECT COUNT(*) FROM documents").fetchone()[0]
+    n_emb = conn.execute("SELECT COUNT(*) FROM embeddings").fetchone()[0]
     meta = {
         "schema_version": SCHEMA_VERSION,
         "corpus_id": "hawkeye-data",
@@ -971,9 +990,16 @@ def rebuild_fts_and_meta(conn: sqlite3.Connection, extra_meta: dict) -> None:
         "playbook_count": str(n_play),
         "document_count": str(n_doc),
         "fts": "mandatory",
-        "embeddings": "optional-empty",
+        "embeddings": "populated" if n_emb else "optional-empty",
     }
+    if n_emb:
+        meta["embed_count"] = str(n_emb)
+        if emb.get("model"):
+            meta["embed_model"] = emb["model"]
     meta.update(extra_meta)
+    # Caller extra_meta must not wipe the embeddings status if it omitted it.
+    if "embeddings" not in extra_meta:
+        meta["embeddings"] = "populated" if n_emb else "optional-empty"
     conn.execute("DELETE FROM meta")
     conn.executemany("INSERT INTO meta(key, value) VALUES (?, ?)", list(meta.items()))
     conn.execute("INSERT INTO playbooks_fts(playbooks_fts) VALUES('optimize')")
@@ -1128,6 +1154,7 @@ def cmd_finalize(root: Path, db_path: Path) -> int:
 def main(argv: list[str]) -> int:
     if len(argv) < 2 or argv[1] in ("-h", "--help"):
         print("usage: corpus.py extract|chunk|load-corpus|assemble|finalize [db]", file=sys.stderr)
+        print("  finalize/assemble also run embed.py when a local embedder is set", file=sys.stderr)
         return 2
     cmd = argv[1]
     root = ROOT

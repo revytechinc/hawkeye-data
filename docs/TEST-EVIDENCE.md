@@ -1,6 +1,6 @@
 # TEST-EVIDENCE
 
-Captured: `2026-08-31T01:06:05Z` UTC
+Captured: `2026-08-31T06:39:43Z` UTC
 Database: `share/knowledge.sqlite` (18006016 bytes)
 Open: `file:...?...mode=ro&immutable=1` integrity_check=ok journal_mode=delete user_version=2
 
@@ -90,7 +90,7 @@ freebsd-doc:books/handbook/bsdinstall/_index       freebsd-handbook       Chapte
 ## meta
 
 ```
-built_at=2026-08-31T01:06:04Z
+built_at=2026-08-31T06:39:42Z
 collected_at=2026-08-30T21:42:10Z
 corpus_id=hawkeye-data
 document_count=1261
@@ -104,7 +104,7 @@ source=freebsd-doc,freebsd-src,hawkeye
 
 ## embeddings
 
-rows=0 (optional table; empty in the default kit)
+rows=0 (optional table; empty is valid — Tier 0 uses FTS5)
 
 ## chunks
 
@@ -112,4 +112,15 @@ manifest ok: 10 chunks, sha256+bytes verified; second run sha256s unchanged
 
 ## result
 
-PASS: FTS hit playbook zfs-remount-rw for "zfs readonly"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for "ZFS"; DB opens immutable/RO.
+PASS: FTS hit playbook zfs-remount-rw for "zfs readonly"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for "ZFS"; DB opens immutable/RO. Embeddings optional (empty is valid Tier 0).
+
+## embeddings fill (fake embedder, no GGUF / no network)
+
+Captured: `2026-08-31T06:39:47Z` UTC
+
+- default harvest (no embedder): embeddings=0 (FTS-only, journal_mode=delete)
+- HAWKEYE_EMBED_FAKE=1: embeddings=16 (playbooks=16 documents=0 dim=8 model=`fake-dim8`)
+- assemble.sh + fake: embeddings=16 playbooks=16 documents=0 journal_mode=delete
+- BIN+MODEL stub wrote 16 rows (playbooks)
+
+PASS: fake embedder populated embeddings; playbook ids match; dim>0; vector blob non-empty; FTS intact; journal_mode=DELETE.

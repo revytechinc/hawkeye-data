@@ -1,6 +1,7 @@
 #!/bin/sh
 # Tier 0 tests: FTS "zfs readonly" hits playbook zfs-remount-rw;
 # after harvest, FTS also hits handbook (ZFS / jails);
+# embeddings may be empty (valid) or populated (must not break FTS);
 # chunk.sh is idempotent; manifest lists sha256 + sizes.
 # POSIX sh + sqlite3(1) + python3.
 # Copyright (c) 2026, REVYTECH, Inc.  BSD 3-Clause.
@@ -80,8 +81,14 @@ for _keep in zfs-remount-rw zpool-import bectl-rollback geli-attach fsck; do
 		|| fail "required playbook missing: $_keep"
 done
 
+# Embeddings are optional. An empty table is valid Tier 0 (FTS-only).
+# A local embedder on the builder may populate rows; that must not break FTS.
 ec=$(sqlite3 "$uri_imm" "SELECT COUNT(*) FROM embeddings;")
-[ "$ec" -eq 0 ] || fail "embeddings should be empty in the default kit (got $ec)"
+if [ "$ec" -gt 0 ]; then
+	bad=$(sqlite3 "$uri_imm" \
+		"SELECT COUNT(*) FROM embeddings WHERE dim <= 0 OR vector IS NULL OR length(vector) = 0;")
+	[ "$bad" -eq 0 ] || fail "embeddings has $bad rows with dim<=0 or empty vector"
+fi
 
 jm=$(sqlite3 "$uri_imm" "PRAGMA journal_mode;")
 case "$jm" in
@@ -225,7 +232,11 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	echo
 	echo "## embeddings"
 	echo
-	echo "rows=$ec (optional table; empty in the default kit)"
+	if [ "$ec" -eq 0 ]; then
+		echo "rows=0 (optional table; empty is valid — Tier 0 uses FTS5)"
+	else
+		echo "rows=$ec (optional table; populated on this kit, FTS5 still mandatory)"
+	fi
 	echo
 	echo "## chunks"
 	echo
@@ -234,9 +245,9 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	echo "## result"
 	echo
 	if [ "$hb_n" -ge 1 ]; then
-		echo "PASS: FTS hit playbook zfs-remount-rw for \"zfs readonly\"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for \"ZFS\"; DB opens immutable/RO."
+		echo "PASS: FTS hit playbook zfs-remount-rw for \"zfs readonly\"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for \"ZFS\"; DB opens immutable/RO. Embeddings optional (empty is valid Tier 0)."
 	else
-		echo "PASS: FTS hit zfs-remount-rw and operator-complaint playbooks; DB opens immutable/RO. (No harvested freebsd-* documents in this DB.)"
+		echo "PASS: FTS hit zfs-remount-rw and operator-complaint playbooks; DB opens immutable/RO. Embeddings optional (empty is valid Tier 0). (No harvested freebsd-* documents in this DB.)"
 	fi
 } > "$EVIDENCE"
 

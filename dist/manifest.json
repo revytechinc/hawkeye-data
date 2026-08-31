@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-08-31T01:06:05Z",
+  "built_at": "2026-08-31T06:39:43Z",
   "chunk_max": 41943040,
   "chunks": [
     {
@@ -14,12 +14,12 @@
       ]
     },
     {
-      "bytes": 3722,
+      "bytes": 4475,
       "count": 5,
       "git_rev": {},
       "id": "hawkeye-docs",
       "path": "dist/chunks/chunk-hawkeye-docs.jsonl.gz",
-      "sha256": "4e8dd42414488f390985a22230b8a4b87937a143dcade247c5ba8b560725780b",
+      "sha256": "86b872275a0181b2697854e3eddc71dacbf9c5959ee1ddd4f1dc61d61c2b38cf",
       "source_ids": [
         "hawkeye"
       ]

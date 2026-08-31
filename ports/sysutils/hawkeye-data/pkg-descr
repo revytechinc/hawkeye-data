@@ -4,7 +4,8 @@ short recovery cheat sheets so Hawkeye still works with no network, a
 read-only root, a missing /usr, or no LLM/GPU.
 
 This is a sibling of sysutils/hawkeye (the binaries). The website is
-a separate project (hawkeye-www). Embeddings are optional and are not
-required for Tier 0 FTS.
+a separate project (hawkeye-www). Embeddings are optional: the builder
+may ship precomputed playbook FLOAT32 rows (nomic-embed, local GGUF),
+and Tier 0 FTS still works if empty.
 
 WWW: https://github.com/revytechinc/hawkeye-data

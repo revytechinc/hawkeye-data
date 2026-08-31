@@ -11,3 +11,9 @@
 # Harvest working trees (too large / not the git artifact)
 /cache/
 /corpus/collected/
+
+# Never commit models (embeddings are computed locally, not vendored)
+*.gguf
+*.ggml
+scripts/__pycache__/
+*.pyc
