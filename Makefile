@@ -10,6 +10,7 @@
 #   make extract   # adoc/mdoc -> corpus/collected
 #   make chunk     # content-addressed dist/chunks (GitHub 40MiB)
 #   make db        # assemble share/knowledge.sqlite
+#   make embed     # optional: fill embeddings if a local embedder is configured
 #   make test
 #   make harvest   # collect extract chunk db test
 
@@ -22,7 +23,7 @@ BOOTDIR = /boot/hawkeye
 DB = share/knowledge.sqlite
 GITHUB_CHUNK_MAX = 41943040
 
-.PHONY: all db assemble collect extract chunk test harvest clean distclean \
+.PHONY: all db assemble collect extract chunk embed test harvest clean distclean \
 	install install-boot
 
 all: db
@@ -49,8 +50,14 @@ db:
 assemble:
 	sh scripts/assemble.sh $(DB)
 
+# Optional: fill embeddings when HAWKEYE_EMBED_BIN+HAWKEYE_EMBED_MODEL
+# (or HAWKEYE_EMBED_FAKE=1) is set. No-op — and must not fail — otherwise.
+embed:
+	python3 scripts/embed.py $(DB)
+
 test: db
 	sh scripts/test-knowledge.sh $(DB)
+	sh scripts/test-embeddings.sh
 
 harvest: collect extract chunk db test
 

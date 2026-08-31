@@ -21,7 +21,7 @@ Hawkeye should still help when:
 - **`/usr` is missing** (so the pkg copy is gone)
 - the **GPU / LLM / embedder is down**
 
-Tier 0 is a compact `knowledge.sqlite` plus markdown playbooks. Retrieval is **FTS5**, not vectors. Embeddings are optional and generated later by the binary if an embedder exists.
+Tier 0 is a compact `knowledge.sqlite` plus markdown playbooks. Retrieval is **FTS5** first. Embeddings are optional: the kit builder can ship precomputed little-endian FLOAT32 rows so sqlite-vec ranking works on a box with no GGUF, and Hawkeye can still `FillEmbeddings` at runtime if an embedder exists. An empty `embeddings` table is valid — consult falls back to FTS.
 
 ## What Hawkeye consumes
 
@@ -106,12 +106,24 @@ Keep the tree small enough that a `/boot` copy is realistic: compact sqlite + pl
 
 ```sh
 make          # rebuild share/knowledge.sqlite (sqlite3 + python3)
-make test     # FTS "zfs readonly" must hit a playbook; harvest also hits handbook "ZFS"
+make test     # FTS "zfs readonly" must hit a playbook; fake embedder must fill embeddings
 make install          # DESTDIR/PREFIX/share/hawkeye
 make install-boot     # DESTDIR/boot/hawkeye
 ```
 
 `share/knowledge.sqlite` is **committed** (when under 50MB) so rescue media can copy a file without a builder host. Rebuild from `playbooks/*.md`, `docs/*.md`, and `corpus/collected` with `scripts/build-knowledge.sh`, or from `dist/chunks` with `scripts/assemble.sh`.
+
+### Precomputed embeddings (optional)
+
+The default harvest **does not require** a model. If `HAWKEYE_EMBED_BIN` and `HAWKEYE_EMBED_MODEL` point at a local llama.cpp-style embedder, `scripts/embed.py` (called from assemble / finalize) fills `embeddings` for playbooks and, when size stays reasonable, documents. Tests use `HAWKEYE_EMBED_FAKE=1` (stable dim-8, no GGUF, no network).
+
+```
+HAWKEYE_EMBED_BIN=/usr/local/bin/llama-cli \
+HAWKEYE_EMBED_MODEL=/usr/local/share/hawkeye/models/embed.gguf \
+make db
+```
+
+Do **not** commit GGUF files, API keys, or cloud embeddings. Local only. `make test` still passes when no embedder is on the builder.
 
 A FreeBSD port skeleton lives in `ports/sysutils/hawkeye-data` (sibling of `sysutils/hawkeye`). See that directory's `pkg-message`.
 
@@ -134,6 +146,8 @@ notices/FREEBSD-DOC-LICENSE.txt
 SOURCES.md                    # git URLs, sparse paths, collected SHAs
 schema/knowledge.sql          # tables + FTS5 + optional embeddings
 scripts/collect.sh extract.sh chunk.sh assemble.sh build-knowledge.sh
+scripts/embed.py              # optional local/fake FLOAT32 fill
+scripts/test-embeddings.sh    # fake embedder: COUNT(*) > 0, playbook ids match
 playbooks/*.md                # emergency procedures (YAML front matter)
 docs/*.md                     # cheat sheets + schema + TEST-EVIDENCE
 share/knowledge.sqlite        # assembled kit Hawkeye opens (committed if < 50MB)

@@ -231,7 +231,9 @@ if [ -d "$ROOT/corpus/collected" ] && command -v python3 >/dev/null 2>&1; then
 	python3 "$ROOT/scripts/corpus.py" load-corpus "$OUT"
 fi
 
-# Rebuild FTS, write meta (schema_version 2, source, git_rev, collected_at), VACUUM.
+# Rebuild FTS, optional local embeddings (scripts/embed.py), write meta, VACUUM.
+# Embeddings fill only when HAWKEYE_EMBED_BIN+HAWKEYE_EMBED_MODEL or
+# HAWKEYE_EMBED_FAKE=1 is set; otherwise the table stays empty (FTS-only).
 if command -v python3 >/dev/null 2>&1; then
 	python3 "$ROOT/scripts/corpus.py" finalize "$OUT"
 else

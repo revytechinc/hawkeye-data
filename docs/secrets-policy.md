@@ -11,9 +11,12 @@ This kit is a public, shippable knowledge corpus. It must remain useful on a USB
 **Never store in this repository, the sqlite file, playbooks, or docs:**
 
 - SSH private keys, `authorized_keys` samples that look real, or host keys
-- Passwords, passphrases, `htpasswd` lines, or API tokens
+- Passwords, passphrases, `htpasswd` lines, or API tokens (including embed/LLM keys)
+- GGUF/GGML model files, or embeddings fetched from a hosted API
 - geli passphrases, ZFS wrapping keys, or key-file bytes
 - Real MAC addresses, production hostnames, or customer paths that identify a deployment
+
+Local llama.cpp embeddings are fine when computed on the builder (`HAWKEYE_EMBED_BIN` + `HAWKEYE_EMBED_MODEL`). The model path and binary stay in the environment, not in git.
 
 **Runtime rule for Hawkeye (the binary):**
 

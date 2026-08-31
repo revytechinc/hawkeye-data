@@ -18,7 +18,7 @@ Source of truth: `schema/knowledge.sql`.
 | `skills` | VIEW alias of `playbooks` |
 | `documents_fts` | FTS5 external-content over `documents` |
 | `playbooks_fts` | FTS5 external-content over `playbooks` |
-| `embeddings` | Optional FLOAT32 (or sqlite-vec) blobs; **empty** in the default kit |
+| `embeddings` | Optional little-endian FLOAT32 blobs; **may be populated** by the builder when a local embedder is configured; **empty** is valid (Tier 0 uses FTS5) |
 
 ## Playbook columns
 
@@ -58,4 +58,24 @@ Tokenizer is `unicode61` (no Porter) so tokens like `zfs`, `geli`, and `bectl` s
 
 ## Vectors (optional)
 
-`embeddings(target_table, target_id, model, dim, vector)` is created so Hawkeye can fill it later. Tier 0 must work when this table has zero rows and when no embedder/GPU is present. Do not require the sqlite-vec extension on rescue media.
+`embeddings(target_table, target_id, model, dim, vector)` holds little-endian FLOAT32 blobs (Hawkeye `PackF32`). sqlite-vec is not required at build or on rescue media.
+
+The builder (`scripts/embed.py`, hooked from assemble / finalize) **can** populate playbook rows (and documents when the estimated blob size stays reasonable) when a **local** llama.cpp-style embedder is configured:
+
+```
+HAWKEYE_EMBED_BIN=/usr/local/bin/llama-cli
+HAWKEYE_EMBED_MODEL=/path/to/local-embed.gguf
+make db
+```
+
+`HAWKEYE_LLM_BIN` is accepted as a fallback for the binary path (same name the Hawkeye binary reads). Tests use `HAWKEYE_EMBED_FAKE=1` (deterministic dim-8, no GGUF, no network).
+
+If those env vars are unset, the harvest stays FTS-only and **must not fail**. An empty table is valid. Hawkeye may also `FillEmbeddings` at runtime on a writable copy. Do not commit GGUF files, API keys, or embeddings from a hosted API.
+
+```
+SELECT COUNT(*) FROM embeddings;           -- 0 is fine
+SELECT target_id, model, dim, length(vector) FROM embeddings
+ WHERE target_table = 'playbooks';
+```
+
+Tier 0 consult must work when this table has zero rows and when no embedder/GPU is present.

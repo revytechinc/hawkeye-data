@@ -6,7 +6,9 @@
 --   sqlite3 'file:/usr/local/share/hawkeye/knowledge.sqlite?mode=ro&immutable=1'
 --
 -- FTS5 is mandatory so Hawkeye still works with no embedder, no GPU, and
--- no network. The embeddings table is optional and may be empty.
+-- no network. The embeddings table is optional and may be empty (Tier 0
+-- then uses FTS5 only). The builder MAY populate it when a local embedder
+-- is configured; the default harvest with no model must still succeed.
 --
 -- Builder always uses journal_mode=DELETE and VACUUM so the file can be
 -- copied onto rescue media and opened immutable (no -wal sidecar required).
@@ -77,14 +79,16 @@ CREATE VIRTUAL TABLE playbooks_fts USING fts5(
     tokenize = 'unicode61'
 );
 
--- Optional vector table. The default builder does NOT populate this.
--- Hawkeye binaries (https://github.com/revytechinc/hawkeye) MAY write
--- embeddings here at runtime if an embedder is available. Tier 0 MUST
--- ignore an empty table and use FTS5 instead.
+-- Optional vector table. scripts/embed.py fills it when a local embedder
+-- is configured (HAWKEYE_EMBED_BIN + HAWKEYE_EMBED_MODEL, or
+-- HAWKEYE_EMBED_FAKE=1 for tests). The default harvest with no model
+-- leaves this empty. Hawkeye binaries (https://github.com/revytechinc/hawkeye)
+-- MAY also FillEmbeddings at runtime. Tier 0 MUST ignore an empty table
+-- and use FTS5 instead. Do not require sqlite-vec at build or on rescue.
 --
--- vector is a native-endian blob of dim FLOAT32 values, or a format
--- understood by a sqlite-vec virtual table if that extension is loaded.
--- Do not require sqlite-vec for rescue/Tier 0.
+-- vector is a little-endian blob of dim FLOAT32 values (Hawkeye PackF32),
+-- or a format understood by a sqlite-vec virtual table if that extension
+-- is loaded.
 CREATE TABLE embeddings (
     id           INTEGER PRIMARY KEY,
     target_table TEXT    NOT NULL CHECK (target_table IN ('documents', 'playbooks')),

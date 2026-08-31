@@ -104,7 +104,7 @@ source=freebsd-doc,freebsd-src,hawkeye
 
 ## embeddings
 
-rows=0 (optional table; empty in the default kit)
+rows=0 (optional table; empty is valid — Tier 0 uses FTS5)
 
 ## chunks
 
@@ -112,4 +112,14 @@ manifest ok: 10 chunks, sha256+bytes verified; second run sha256s unchanged
 
 ## result
 
-PASS: FTS hit playbook zfs-remount-rw for "zfs readonly"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for "ZFS"; DB opens immutable/RO.
+PASS: FTS hit playbook zfs-remount-rw for "zfs readonly"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for "ZFS"; DB opens immutable/RO. Embeddings optional (empty is valid Tier 0).
+
+## embeddings fill (fake embedder, no GGUF / no network)
+
+Captured: `2026-08-31T06:36:16Z` UTC
+
+- default harvest (no embedder): embeddings=0 (FTS-only, journal_mode=delete)
+- HAWKEYE_EMBED_FAKE=1: embeddings=21 (playbooks=16 documents=5 dim=8 model=`fake-dim8`)
+- BIN+MODEL stub wrote 16 rows (playbooks)
+
+PASS: fake embedder populated embeddings; playbook ids match; dim>0; vector blob non-empty; FTS intact; journal_mode=DELETE.
