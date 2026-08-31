@@ -85,6 +85,9 @@ make harvest    # collect extract chunk db test
 Do **not** binary-split sqlite (useless for incremental updates). Chunk by source grouping (handbook, other books, articles, man8, man4, …; playbooks stay small).
 
 Each chunk is gzipped JSONL of documents `{id,title,category,path,body,source,git_rev}` (playbooks include extra fields). `dist/manifest.json` lists `sha256` and byte sizes. `scripts/chunk.sh` only rewrites a chunk file when its content hash changed.
+If `corpus/collected` is missing (gitignored on a fresh clone), only the
+`playbooks` and `hawkeye-docs` chunks are rebuilt; harvested handbook/man
+chunks are kept.
 
 Limits: warn at 40MiB (`GITHUB_CHUNK_MAX=41943040`), never commit a single file ≥ 50MB, hard-fail at 90MB.
 

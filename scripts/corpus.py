@@ -746,6 +746,9 @@ def cmd_chunk(root: Path) -> int:
     collected = load_collected(root)
     playbooks = load_playbooks(root)
     docs = load_hawkeye_docs(root)
+    # corpus/collected is gitignored. A checkout without extract must not
+    # treat handbook/man chunks as stale — only rebuild live hawkeye groups.
+    live_only = not collected
 
     groups: dict[str, list[dict]] = defaultdict(list)
     for rec in collected:
@@ -775,6 +778,13 @@ def cmd_chunk(root: Path) -> int:
         sid: (revs.get("sources") or {}).get(sid, {}).get("git_rev")
         for sid in source_ids
     }
+    if live_only:
+        # Keep harvested source ids/revs from the last full chunk.
+        source_ids = sorted(set(source_ids) | set(old.get("source_ids") or []) - {""})
+        for sid, rev in (old.get("git_rev") or {}).items():
+            if rev and not git_revs.get(sid):
+                git_revs[sid] = rev
+        print("chunk: no corpus/collected; rebuilding playbooks/hawkeye-docs only")
 
     # stable group order
     order = [
@@ -826,17 +836,38 @@ def cmd_chunk(root: Path) -> int:
                 "git_rev": {s: git_revs.get(s) for s in srcs if git_revs.get(s)},
             })
 
+    if live_only:
+        live_ids = {c["id"] for c in new_chunks}
+        for prev in old.get("chunks") or []:
+            cid = prev.get("id")
+            if not cid or cid in live_ids:
+                continue
+            fname = Path(prev.get("path") or f"dist/chunks/chunk-{cid}.jsonl.gz").name
+            fpath = chunks_dir / fname
+            if not fpath.is_file():
+                print(f"chunk: skip missing harvested {fname}", file=sys.stderr)
+                continue
+            if prev.get("sha256") and sha256_file(fpath) != prev["sha256"]:
+                print(f"chunk: skip {fname}: sha256 mismatch vs manifest", file=sys.stderr)
+                continue
+            keep_names.add(fname)
+            new_chunks.append(prev)
+            reused += 1
+
     # remove stale chunk files not in new manifest
     for existing in chunks_dir.glob("chunk-*"):
         if existing.name not in keep_names:
             print(f"chunk: remove stale {existing.name}")
             existing.unlink()
 
+    out_sources = list(source_ids)
+    if "hawkeye" not in out_sources:
+        out_sources.append("hawkeye")
     manifest = {
         "format": "hawkeye-chunks-v1",
         "chunk_max": max_b,
         "built_at": utcnow(),
-        "source_ids": source_ids + ["hawkeye"],
+        "source_ids": out_sources,
         "git_rev": git_revs,
         "chunks": new_chunks,
     }
@@ -955,6 +986,51 @@ def rebuild_fts_and_meta(conn: sqlite3.Connection, extra_meta: dict) -> None:
         raise SystemExit(f"integrity_check={ic}")
 
 
+def extra_from_revs_or_manifest(root: Path, conn: sqlite3.Connection | None = None) -> dict:
+    """meta.source / git_rev / collected_at. Fall back to dist/manifest when cache/ is gone."""
+    revs = load_revisions(root)
+    sources = set((revs.get("sources") or {}).keys())
+    git_rev = {
+        k: v.get("git_rev") for k, v in (revs.get("sources") or {}).items() if v.get("git_rev")
+    }
+    collected_at = revs.get("collected_at") or ""
+    man = root / "dist" / "manifest.json"
+    if man.is_file() and (not sources or not git_rev):
+        spec = load_json(man)
+        sources |= {s for s in (spec.get("source_ids") or []) if s}
+        for k, v in (spec.get("git_rev") or {}).items():
+            if v and not git_rev.get(k):
+                git_rev[k] = v
+    if conn is not None:
+        if not git_rev:
+            for src, rev in conn.execute(
+                "SELECT DISTINCT source, git_rev FROM documents "
+                "WHERE source != '' AND git_rev != ''"
+            ):
+                sources.add(src)
+                if rev:
+                    git_rev[src] = rev
+        if not collected_at:
+            row = conn.execute(
+                "SELECT collected_at FROM documents WHERE collected_at != '' LIMIT 1"
+            ).fetchone()
+            if row:
+                collected_at = row[0]
+    if not collected_at:
+        sources_md = root / "SOURCES.md"
+        if sources_md.is_file():
+            m = re.search(r"Collected at:\s*`([^`]+)`", sources_md.read_text(encoding="utf-8"))
+            if m:
+                collected_at = m.group(1)
+    sources.add("hawkeye")
+    sources.discard("")
+    return {
+        "source": ",".join(sorted(sources)),
+        "git_rev": json.dumps(git_rev, sort_keys=True),
+        "collected_at": collected_at,
+    }
+
+
 def cmd_load_corpus(root: Path, db_path: Path) -> int:
     """Insert corpus/collected documents into existing DB (playbooks already loaded)."""
     conn = sqlite3.connect(str(db_path))
@@ -1017,17 +1093,7 @@ def cmd_assemble(root: Path, db_path: Path) -> int:
             insert_document(conn, rec)
             n_doc += 1
 
-    revs = load_revisions(root)
-    extra = {
-        "source": ",".join(sorted({
-            *(revs.get("sources") or {}).keys(),
-            "hawkeye",
-        })),
-        "git_rev": json.dumps({
-            k: v.get("git_rev") for k, v in (revs.get("sources") or {}).items()
-        }, sort_keys=True),
-        "collected_at": revs.get("collected_at") or "",
-    }
+    extra = extra_from_revs_or_manifest(root, conn)
     rebuild_fts_and_meta(conn, extra)
     conn.close()
     nbytes = db_path.stat().st_size
@@ -1044,15 +1110,7 @@ def cmd_assemble(root: Path, db_path: Path) -> int:
 def cmd_finalize(root: Path, db_path: Path) -> int:
     """After POSIX playbook/doc load + load-corpus, rebuild FTS/meta/vacuum."""
     conn = sqlite3.connect(str(db_path))
-    revs = load_revisions(root)
-    extra = {
-        "source": ",".join(sorted({*(revs.get("sources") or {}).keys(), "hawkeye"})),
-        "git_rev": json.dumps(
-            {k: v.get("git_rev") for k, v in (revs.get("sources") or {}).items()},
-            sort_keys=True,
-        ),
-        "collected_at": revs.get("collected_at") or "",
-    }
+    extra = extra_from_revs_or_manifest(root, conn)
     rebuild_fts_and_meta(conn, extra)
     conn.close()
     nbytes = db_path.stat().st_size
