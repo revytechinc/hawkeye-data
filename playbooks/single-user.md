@@ -7,7 +7,7 @@ requires_net: no
 requires_zfs: no
 requires_ufs: no
 preconditions: {"rw":false,"net":false,"zfs":false,"ufs":false,"rescue_ok":true,"single_user_ok":true}
-danger_flags: ["exit from single-user starts the rest of rc; a broken rc will fail again.","Single-user is not a security boundary on an insecure console.","Do not 'kill 1' as if this were a SysV Linux box."]
+danger_flags: ["exit from single-user starts the rest of rc; a broken rc will fail again (see rc-enable-missing).","Single-user is not a security boundary on an insecure console.","Do not 'kill 1' as if this were a SysV Linux box."]
 rollback_notes: reboot   — or shutdown -r now. To stay in single-user, do not exit.
 ---
 
@@ -50,3 +50,5 @@ reboot
 - Console secure flag in `ttys(5)` controls whether single-user asks for the root password.
 - Single-user is **not** the same as `/rescue`. You can be multi-user with a broken `/usr` and still want `/rescue` on `PATH` (playbook `rescue-path`).
 - There is no portable `init 1` / `telinit` workflow here; use `shutdown now` or `boot -s`.
+- If `exit` dies on a missing rc.d script or `*_enable=YES` leftover, playbook `rc-enable-missing` (do not start services without apply `--yes`).
+- If `exit` dies on a missing fstab device, playbook `fstab-mounts`.

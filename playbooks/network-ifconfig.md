@@ -13,7 +13,7 @@ rollback_notes: ifconfig IF down; ifconfig IF inet 0.0.0.0 delete; service netif
 
 # ifconfig, dhclient, service netif
 
-Works from `/rescue` with a present driver. If `ifconfig -a` shows no physical NIC, load the module first (playbook `kldload-boot-kernel`).
+Works from `/rescue` with a present driver. If `ifconfig -a` shows no physical NIC, load the module first (playbook `kldload-boot-kernel`). If the NIC is already UP but has `status: no carrier`, no default route, or an empty `resolv.conf`, diagnose with playbook `network-no-route` before you `dhclient`.
 
 Interface names are host-specific (`em0`, `igb0`, `ix0`, `re0`, `vtnet0`). Read them from `ifconfig -a`; do not copy example names blindly.
 
@@ -52,3 +52,4 @@ The `192.0.2.0/24` block is documentation-only (RFC 5737). Use this host's real 
 
 - Single-user may lack `dhclient` in `/rescue`. Then use static `ifconfig`/`route`, or `service` after mounting a writable userland.
 - `/etc/rc.conf` edits need a writable root (`ufs-mount-rw` or `zfs-remount-rw`) and are a persistent change; prefer runtime ifconfig for a one-shot rescue.
+- `ifconfig` `status: no carrier`, missing `default` in `netstat -rn`, and `/etc/resolv.conf` are playbook `network-no-route`.

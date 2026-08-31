@@ -139,4 +139,4 @@ ports/sysutils/hawkeye-data/  # port skeleton
 
 ## Emergency playbooks (first kit)
 
-`zfs-remount-rw`, `ufs-mount-rw`, `zpool-import`, `zfs-load-key`, `geli-attach`, `bectl-rollback`, `fsck`, `network-ifconfig`, `kldload-boot-kernel`, `single-user`, `rescue-path`.
+`zfs-remount-rw`, `ufs-mount-rw`, `zpool-import`, `zfs-load-key`, `geli-attach`, `bectl-rollback`, `fsck`, `network-ifconfig`, `kldload-boot-kernel`, `single-user`, `rescue-path`, plus operator-complaint kits: `fstab-mounts`, `rc-enable-missing`, `root-full`, `network-no-route`, `sshd-not-running`.
