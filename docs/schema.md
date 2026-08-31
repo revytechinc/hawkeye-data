@@ -65,13 +65,13 @@ The builder (`scripts/embed.py`, hooked from assemble / finalize) **can** popula
 The GGUF lives on the builder/jail separately (not in this repo). Hawkeye uses it at consult time to embed the query; this kit only ships the precomputed playbook vectors.
 
 ```
-HAWKEYE_EMBED_BIN=/usr/local/bin/llama-cli \
+HAWKEYE_EMBED_BIN=/usr/local/bin/llama-embedding \
 HAWKEYE_EMBED_MODEL=/usr/local/share/hawkeye/models/nomic-embed-text-v1.5.Q8_0.gguf \
 make db
-# optional: HAWKEYE_EMBED_ARGS='--pooling mean'
+# optional override: HAWKEYE_EMBED_ARGS='--threads 4'
 ```
 
-`llama-embedding` is accepted (the `--embedding` flag is omitted). `HAWKEYE_LLM_BIN` is a fallback for the binary path. Tests use `HAWKEYE_EMBED_FAKE=1` (deterministic dim-8, no GGUF, no network).
+When the binary basename is `llama-embedding`, `embed.py` omits `--embedding` and `--no-display-prompt` (both rejected on llama-cpp-9426) and defaults `--pooling mean --embd-separator '<#sep#>'`. A wrap script is not required. `HAWKEYE_EMBED_ARGS` still appends/overrides. `llama-cli` may still receive `--embedding`. `HAWKEYE_LLM_BIN` is a fallback for the binary path. Tests use `HAWKEYE_EMBED_FAKE=1` (deterministic dim-8, no GGUF, no network).
 
 If those env vars are unset, the harvest stays FTS-only and **must not fail**. An empty table is valid (jail kit hawkeye-data-0.1.0_3 ships this way until a local GGUF fill). Hawkeye may also `FillEmbeddings` at runtime on a writable copy. Do not commit GGUF files, API keys, or embeddings from a hosted API.
 

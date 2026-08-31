@@ -118,11 +118,14 @@ make install-boot     # DESTDIR/boot/hawkeye
 The default harvest **does not require** a model. If `HAWKEYE_EMBED_BIN` and `HAWKEYE_EMBED_MODEL` point at a local llama.cpp-style embedder (nomic-embed GGUF on the jail/builder, not in git), `scripts/embed.py` fills **playbook** rows only. That is enough for rescue ranking and keeps the ~17 MiB kit compact (16 × 768-d FLOAT32 ≈ 50 KiB). Documents stay FTS-only unless you set `HAWKEYE_EMBED_DOCS=1`. Tests use `HAWKEYE_EMBED_FAKE=1` (stable dim-8, no GGUF, no network) and require every playbook id to have a row.
 
 ```
-HAWKEYE_EMBED_BIN=/usr/local/bin/llama-cli \
+HAWKEYE_EMBED_BIN=/usr/local/bin/llama-embedding \
 HAWKEYE_EMBED_MODEL=/usr/local/share/hawkeye/models/nomic-embed-text-v1.5.Q8_0.gguf \
 make db
 # or, after assemble: make embed
+# optional override: HAWKEYE_EMBED_ARGS='--threads 4'
 ```
+
+On llama-cpp-9426, `llama-cli --embedding` is invalid and `llama-embedding` rejects `--no-display-prompt`. `embed.py` detects the `llama-embedding` basename, omits those flags, and defaults `--pooling mean --embd-separator '<#sep#>'` so a wrap script is not required. `HAWKEYE_EMBED_ARGS` still appends/overrides. A newline separator explodes the vector dim.
 
 Do **not** commit GGUF files, API keys, or cloud embeddings. Local only. `make test` still passes when no embedder is on the builder.
 

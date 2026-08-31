@@ -11,6 +11,10 @@ The embeddings table is optional. This tool:
     (CI / tests — no GGUF, no network);
   * invokes a llama.cpp-style binary when HAWKEYE_EMBED_BIN and
     HAWKEYE_EMBED_MODEL are set (local only; never a hosted API).
+    llama-embedding (basename) omits --embedding and --no-display-prompt
+    (llama-cpp-9426 rejects both) and defaults --pooling mean plus
+    --embd-separator '<#sep#>'. No wrap script. HAWKEYE_EMBED_ARGS
+    still appends/overrides.
 
 Vectors are little-endian FLOAT32 blobs, matching Hawkeye PackF32 /
 sqlite-vec. sqlite-vec is not required at build time.
@@ -34,6 +38,9 @@ from pathlib import Path
 FAKE_DIM = 8
 FAKE_MODEL = "fake-dim8"
 TEXT_CAP = 8192
+# llama-embedding default newline separator exploded dim (tens of
+# thousands). Jail-proven token; must not appear in playbook text.
+DEFAULT_EMBD_SEPARATOR = "<#sep#>"
 # Documents are opt-in. A nomic-embed 768-d row is 3 KiB; 1261 handbook
 # documents would add ~4 MiB to a 17 MiB rescue kit. Playbooks (16 rows,
 # ~50 KiB) always fill when an embedder is configured.
@@ -133,17 +140,47 @@ def model_label(model: str) -> str:
     return name or FAKE_MODEL
 
 
+def _is_llama_embedding(bin_path: str) -> bool:
+    """True when HAWKEYE_EMBED_BIN basename is llama-embedding."""
+    return Path(bin_path).name.lower() == "llama-embedding"
+
+
+def _flag_present(args: list[str], flag: str) -> bool:
+    """True if flag is already in argv (bare or --flag=value)."""
+    eq = flag + "="
+    return any(a == flag or a.startswith(eq) for a in args)
+
+
 def llama_argv(bin_path: str, model: str, text: str) -> list[str]:
-    """Match Hawkeye llm.embedArgs; llama-embedding omits --embedding."""
+    """Build llama.cpp argv. llama-embedding omits flags it rejects.
+
+    llama-cli --embedding is invalid on llama-cpp-9426. llama-embedding
+    also rejects --no-display-prompt. Defaults --pooling mean and
+    --embd-separator (see DEFAULT_EMBD_SEPARATOR). HAWKEYE_EMBED_ARGS
+    still appends and can override those defaults. A wrap script that
+    strips flags is not required.
+    """
     prefix: list[str] = []
     if bin_path.endswith(".py") and not os.access(bin_path, os.X_OK):
         prefix = [sys.executable]
-    base = Path(bin_path).name.lower()
-    embedding_flag = [] if "embedding" in base and "cli" not in base else ["--embedding"]
     extra: list[str] = []
     raw = getenv("HAWKEYE_EMBED_ARGS")
     if raw:
         extra = shlex.split(raw)
+    llama_embedding = _is_llama_embedding(bin_path)
+    base = Path(bin_path).name.lower()
+    # llama-embedding, and other *embedding* bins that are not *cli*.
+    embedding_flag = [] if llama_embedding or (
+        "embedding" in base and "cli" not in base
+    ) else ["--embedding"]
+    display_prompt_flag = [] if llama_embedding else ["--no-display-prompt"]
+    pooling: list[str] = []
+    separator: list[str] = []
+    if llama_embedding:
+        if not _flag_present(extra, "--pooling"):
+            pooling = ["--pooling", "mean"]
+        if not _flag_present(extra, "--embd-separator"):
+            separator = ["--embd-separator", DEFAULT_EMBD_SEPARATOR]
     return [
         *prefix,
         bin_path,
@@ -152,11 +189,13 @@ def llama_argv(bin_path: str, model: str, text: str) -> list[str]:
         *embedding_flag,
         "-p",
         text,
-        "--no-display-prompt",
+        *display_prompt_flag,
         "-ngl",
         "0",
         "--embd-output-format",
         "array",
+        *pooling,
+        *separator,
         *extra,
     ]
 
@@ -308,14 +347,53 @@ def cmd_self_test() -> int:
     ):
         print("self-test: model_label", file=sys.stderr)
         return 1
-    argv = llama_argv("/usr/local/bin/llama-embedding", "m.gguf", "hi")
-    if "--embedding" in argv:
-        print("self-test: llama-embedding should omit --embedding", file=sys.stderr)
-        return 1
-    argv2 = llama_argv("/usr/local/bin/llama-cli", "m.gguf", "hi")
-    if "--embedding" not in argv2:
-        print("self-test: llama-cli should pass --embedding", file=sys.stderr)
-        return 1
+    saved_args = os.environ.pop("HAWKEYE_EMBED_ARGS", None)
+    try:
+        argv = llama_argv("/usr/local/bin/llama-embedding", "m.gguf", "hi")
+        if "--embedding" in argv:
+            print("self-test: llama-embedding should omit --embedding", file=sys.stderr)
+            return 1
+        if "--no-display-prompt" in argv:
+            print(
+                "self-test: llama-embedding should omit --no-display-prompt",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            i = argv.index("--pooling")
+        except ValueError:
+            print("self-test: llama-embedding should pass --pooling mean", file=sys.stderr)
+            return 1
+        if i + 1 >= len(argv) or argv[i + 1] != "mean":
+            print("self-test: llama-embedding --pooling should be mean", file=sys.stderr)
+            return 1
+        if "--embd-separator" not in argv:
+            print("self-test: llama-embedding should pass --embd-separator", file=sys.stderr)
+            return 1
+        sep_i = argv.index("--embd-separator")
+        if sep_i + 1 >= len(argv) or argv[sep_i + 1] != DEFAULT_EMBD_SEPARATOR:
+            print("self-test: embd-separator token", file=sys.stderr)
+            return 1
+        argv2 = llama_argv("/usr/local/bin/llama-cli", "m.gguf", "hi")
+        if "--embedding" not in argv2:
+            print("self-test: llama-cli should pass --embedding", file=sys.stderr)
+            return 1
+        os.environ["HAWKEYE_EMBED_ARGS"] = "--pooling cls --threads 1"
+        argv3 = llama_argv("/usr/local/bin/llama-embedding", "m.gguf", "hi")
+        if argv3.count("--pooling") != 1 or argv3[argv3.index("--pooling") + 1] != "cls":
+            print("self-test: HAWKEYE_EMBED_ARGS should override --pooling", file=sys.stderr)
+            return 1
+        if "--threads" not in argv3 or argv3[argv3.index("--threads") + 1] != "1":
+            print("self-test: HAWKEYE_EMBED_ARGS should append extras", file=sys.stderr)
+            return 1
+        if "--no-display-prompt" in argv3 or "--embedding" in argv3:
+            print("self-test: extras must not restore rejected flags", file=sys.stderr)
+            return 1
+    finally:
+        if saved_args is None:
+            os.environ.pop("HAWKEYE_EMBED_ARGS", None)
+        else:
+            os.environ["HAWKEYE_EMBED_ARGS"] = saved_args
     print(f"self-test: ok dim={FAKE_DIM} model={FAKE_MODEL}")
     return 0
 

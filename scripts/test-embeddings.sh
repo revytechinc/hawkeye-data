@@ -28,7 +28,49 @@ trap 'rm -rf "$TMP"' EXIT
 
 # Inherit nothing from the operator environment.
 unset HAWKEYE_EMBED_FAKE HAWKEYE_EMBED_BIN HAWKEYE_EMBED_MODEL HAWKEYE_LLM_BIN
-unset HAWKEYE_EMBED_DOCS
+unset HAWKEYE_EMBED_DOCS HAWKEYE_EMBED_ARGS
+
+# --- red-green: llama-embedding argv (no wrap script) ---
+python3 "$ROOT/scripts/embed.py" --self-test \
+	|| fail "embed.py --self-test failed"
+
+python3 - "$ROOT" <<'PY' || fail "llama_argv(llama-embedding) checks failed"
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+sys.path.insert(0, str(root / "scripts"))
+from embed import DEFAULT_EMBD_SEPARATOR, llama_argv  # noqa: E402
+
+argv = llama_argv("/usr/local/bin/llama-embedding", "m.gguf", "hi")
+if "--no-display-prompt" in argv:
+    print("FAIL: llama_argv(llama-embedding) contains --no-display-prompt", file=sys.stderr)
+    sys.exit(1)
+if "--embedding" in argv:
+    print("FAIL: llama_argv(llama-embedding) contains --embedding", file=sys.stderr)
+    sys.exit(1)
+try:
+    i = argv.index("--pooling")
+except ValueError:
+    print("FAIL: llama_argv(llama-embedding) missing --pooling", file=sys.stderr)
+    sys.exit(1)
+if i + 1 >= len(argv) or argv[i + 1] != "mean":
+    print("FAIL: llama_argv(llama-embedding) --pooling is not mean", file=sys.stderr)
+    sys.exit(1)
+if "--embd-separator" not in argv:
+    print("FAIL: llama_argv(llama-embedding) missing --embd-separator", file=sys.stderr)
+    sys.exit(1)
+sep = argv[argv.index("--embd-separator") + 1]
+if sep != DEFAULT_EMBD_SEPARATOR:
+    print(f"FAIL: embd-separator={sep!r}", file=sys.stderr)
+    sys.exit(1)
+for p in (root / "playbooks").glob("*.md"):
+    text = p.read_text(encoding="utf-8")
+    if DEFAULT_EMBD_SEPARATOR in text:
+        print(f"FAIL: separator {DEFAULT_EMBD_SEPARATOR!r} appears in {p.name}", file=sys.stderr)
+        sys.exit(1)
+print("PASS: llama_argv(llama-embedding) omits rejected flags; --pooling mean")
+PY
 
 EMPTY="$TMP/empty.sqlite"
 FAKE="$TMP/fake.sqlite"
@@ -181,6 +223,7 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	echo "Captured: \`$now\` UTC"
 	echo
 	echo "- default harvest (no embedder): embeddings=$empty_n (FTS-only, journal_mode=$empty_jm)"
+	echo "- llama-embedding argv: omit --embedding/--no-display-prompt; default --pooling mean --embd-separator \`<#sep#>\`"
 	echo "- HAWKEYE_EMBED_FAKE=1: embeddings=$fake_n (playbooks=$pb_n documents=$doc_n dim=$fake_dim model=\`$model\`)"
 	echo "- $asm_note"
 	echo "- $bin_note"
