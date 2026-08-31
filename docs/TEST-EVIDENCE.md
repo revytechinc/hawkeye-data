@@ -1,6 +1,6 @@
 # TEST-EVIDENCE
 
-Captured: `2026-08-31T06:39:43Z` UTC
+Captured: `2026-08-31T07:04:11Z` UTC
 Database: `share/knowledge.sqlite` (18006016 bytes)
 Open: `file:...?...mode=ro&immutable=1` integrity_check=ok journal_mode=delete user_version=2
 
@@ -90,7 +90,7 @@ freebsd-doc:books/handbook/bsdinstall/_index       freebsd-handbook       Chapte
 ## meta
 
 ```
-built_at=2026-08-31T06:39:42Z
+built_at=2026-08-31T07:04:10Z
 collected_at=2026-08-30T21:42:10Z
 corpus_id=hawkeye-data
 document_count=1261
@@ -116,9 +116,10 @@ PASS: FTS hit playbook zfs-remount-rw for "zfs readonly"; complaint playbooks hi
 
 ## embeddings fill (fake embedder, no GGUF / no network)
 
-Captured: `2026-08-31T06:39:47Z` UTC
+Captured: `2026-08-31T07:04:15Z` UTC
 
 - default harvest (no embedder): embeddings=0 (FTS-only, journal_mode=delete)
+- llama-embedding argv: omit --embedding/--no-display-prompt; default --pooling mean --embd-separator `<#sep#>`
 - HAWKEYE_EMBED_FAKE=1: embeddings=16 (playbooks=16 documents=0 dim=8 model=`fake-dim8`)
 - assemble.sh + fake: embeddings=16 playbooks=16 documents=0 journal_mode=delete
 - BIN+MODEL stub wrote 16 rows (playbooks)
