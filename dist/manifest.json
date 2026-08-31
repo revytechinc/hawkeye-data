@@ -1,25 +1,25 @@
 {
-  "built_at": "2026-08-30T21:43:19Z",
+  "built_at": "2026-08-31T01:06:05Z",
   "chunk_max": 41943040,
   "chunks": [
     {
-      "bytes": 8049,
-      "count": 11,
+      "bytes": 14200,
+      "count": 16,
       "git_rev": {},
       "id": "playbooks",
       "path": "dist/chunks/chunk-playbooks.jsonl.gz",
-      "sha256": "1f7732c7ff1e70bae62c12369d9ad25fb7afc46a7f5a5acfe179f4cf3ecc115e",
+      "sha256": "33e0a1d4be997030865d4aa45f50cd31ae251d4708e4417cb3f1bfd7fee75009",
       "source_ids": [
         "hawkeye"
       ]
     },
     {
-      "bytes": 3202,
+      "bytes": 3722,
       "count": 5,
       "git_rev": {},
       "id": "hawkeye-docs",
       "path": "dist/chunks/chunk-hawkeye-docs.jsonl.gz",
-      "sha256": "aee9f69c343dfd50e0a12ce12be522a9660ac38a97cdd5ab2914c9a8cde7b8b9",
+      "sha256": "4e8dd42414488f390985a22230b8a4b87937a143dcade247c5ba8b560725780b",
       "source_ids": [
         "hawkeye"
       ]

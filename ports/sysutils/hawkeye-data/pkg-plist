@@ -5,11 +5,16 @@
 %%DATADIR%%/schema/knowledge.sql
 %%DATADIR%%/playbooks/bectl-rollback.md
 %%DATADIR%%/playbooks/fsck.md
+%%DATADIR%%/playbooks/fstab-mounts.md
 %%DATADIR%%/playbooks/geli-attach.md
 %%DATADIR%%/playbooks/kldload-boot-kernel.md
 %%DATADIR%%/playbooks/network-ifconfig.md
+%%DATADIR%%/playbooks/network-no-route.md
+%%DATADIR%%/playbooks/rc-enable-missing.md
 %%DATADIR%%/playbooks/rescue-path.md
+%%DATADIR%%/playbooks/root-full.md
 %%DATADIR%%/playbooks/single-user.md
+%%DATADIR%%/playbooks/sshd-not-running.md
 %%DATADIR%%/playbooks/ufs-mount-rw.md
 %%DATADIR%%/playbooks/zfs-load-key.md
 %%DATADIR%%/playbooks/zfs-remount-rw.md

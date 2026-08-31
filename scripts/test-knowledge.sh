@@ -51,7 +51,34 @@ uv=$(sqlite3 "$uri_imm" "PRAGMA user_version;")
 [ "$uv" -ge 1 ] || fail "user_version=$uv"
 
 pc=$(sqlite3 "$uri_imm" "SELECT value FROM meta WHERE key='playbook_count';")
-[ "$pc" -ge 11 ] || fail "playbook_count=$pc (want >= 11 required emergency playbooks)"
+[ "$pc" -ge 16 ] || fail "playbook_count=$pc (want >= 16 required emergency playbooks)"
+
+# Operator-complaint playbooks (boot/rescue, not Hawkeye self-health).
+assert_pb() {
+	_q=$1
+	_id=$2
+	_hits=$(sqlite3 -header -column "$uri_ro" \
+		"SELECT p.id, p.title
+		 FROM playbooks AS p
+		 WHERE p.rowid IN (
+		   SELECT rowid FROM playbooks_fts WHERE playbooks_fts MATCH '$_q'
+		 )
+		 ORDER BY p.id;")
+	echo "$_hits" | grep -q "$_id" || fail "FTS '$_q' expected playbook id $_id"
+	printf '%s\n' "$_hits"
+}
+
+complaint_fstab=$(assert_pb "fstab" "fstab-mounts")
+complaint_rc=$(assert_pb "rcorder" "rc-enable-missing")
+complaint_full=$(assert_pb "inodes" "root-full")
+complaint_net=$(assert_pb "carrier" "network-no-route")
+complaint_sshd=$(assert_pb "sshd" "sshd-not-running")
+
+# Existing disk/key playbooks must remain (never fsck ZFS).
+for _keep in zfs-remount-rw zpool-import bectl-rollback geli-attach fsck; do
+	sqlite3 "$uri_imm" "SELECT id FROM playbooks WHERE id='$_keep';" | grep -qx "$_keep" \
+		|| fail "required playbook missing: $_keep"
+done
 
 ec=$(sqlite3 "$uri_imm" "SELECT COUNT(*) FROM embeddings;")
 [ "$ec" -eq 0 ] || fail "embeddings should be empty in the default kit (got $ec)"
@@ -153,6 +180,23 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	echo "$hits"
 	echo '```'
 	echo
+	echo "## FTS operator-complaint playbooks"
+	echo
+	echo "fstab -> fstab-mounts; rcorder -> rc-enable-missing; inodes -> root-full;"
+	echo "carrier -> network-no-route; sshd -> sshd-not-running"
+	echo
+	echo '```'
+	echo "$complaint_fstab"
+	echo
+	echo "$complaint_rc"
+	echo
+	echo "$complaint_full"
+	echo
+	echo "$complaint_net"
+	echo
+	echo "$complaint_sshd"
+	echo '```'
+	echo
 	echo "## FTS query: \`ZFS\` (documents, after harvest)"
 	echo
 	echo "Matches: $hb_n"
@@ -190,9 +234,9 @@ now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 	echo "## result"
 	echo
 	if [ "$hb_n" -ge 1 ]; then
-		echo "PASS: FTS hit playbook zfs-remount-rw for \"zfs readonly\"; FTS also hit harvested FreeBSD docs for \"ZFS\"; DB opens immutable/RO."
+		echo "PASS: FTS hit playbook zfs-remount-rw for \"zfs readonly\"; complaint playbooks hit; FTS also hit harvested FreeBSD docs for \"ZFS\"; DB opens immutable/RO."
 	else
-		echo "PASS: FTS hit at least one playbook (zfs-remount-rw) for \"zfs readonly\"; DB opens immutable/RO. (No harvested freebsd-* documents in this DB.)"
+		echo "PASS: FTS hit zfs-remount-rw and operator-complaint playbooks; DB opens immutable/RO. (No harvested freebsd-* documents in this DB.)"
 	fi
 } > "$EVIDENCE"
 

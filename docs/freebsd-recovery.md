@@ -36,10 +36,36 @@ Short hits for FTS and a human at a RO console. Procedures live in `playbooks/`.
 
 - `bectl list` / `bectl activate GOOD_BE` / reboot (`bectl-rollback`)
 
+## fstab versus mounts
+
+- `cat /etc/fstab` then `mount -p` / `df -T` (`fstab-mounts`)
+- Labels: `gpart show -l`, `glabel status`, `ls /dev/gpt /dev/ufs`
+- `noauto` is expected not to mount; dump/pass are UFS `dump(8)` / `fsck(8)` fields
+- Missing `/dev/gpt/NAME`: disk, geli, or a renamed label — do not invent names
+- Never `fsck` ZFS; a ZFS fstab line still needs the pool imported
+
+## rc.conf enabled but missing
+
+- `grep _enable= /etc/rc.conf`; `ls /etc/rc.d /usr/local/etc/rc.d` (`rc-enable-missing`)
+- `rcorder /etc/rc.d/*`; `sh -n /etc/rc.conf` and `sh -n` the rc.d script
+- Do **not** start the service until apply `--yes` and both script and `command=` binary exist
+
+## Root full / inodes
+
+- `df -h /` and `df -i /` (`root-full`) — blocks vs UFS inodes
+- Classic fillers: `/var/log`, `/var/cache/pkg`, `/var/crash`
+- Reclaim is apply-gated; do not empty `/var/db/pkg`
+
 ## Network and modules
 
 - `kldload /boot/kernel/MODULE.ko` (`kldload-boot-kernel`)
 - `ifconfig IF up` / `dhclient IF` / `service netif restart` (`network-ifconfig`)
+- NIC UP but `status: no carrier`, no `default` in `netstat -rn`, or empty `resolv.conf` (`network-no-route`)
+
+## sshd after upgrade
+
+- `sshd_enable=YES` but not listening: `ls /etc/rc.d/sshd /usr/sbin/sshd`, `sshd -t`, `sockstat` (`sshd-not-running`)
+- Do not start sshd until apply `--yes` and `sshd -t` is clean
 
 ## PATH and runlevel
 
