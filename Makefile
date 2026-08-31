@@ -50,8 +50,9 @@ db:
 assemble:
 	sh scripts/assemble.sh $(DB)
 
-# Optional: fill embeddings when HAWKEYE_EMBED_BIN+HAWKEYE_EMBED_MODEL
-# (or HAWKEYE_EMBED_FAKE=1) is set. No-op — and must not fail — otherwise.
+# Optional: fill playbook embeddings when HAWKEYE_EMBED_BIN+HAWKEYE_EMBED_MODEL
+# (nomic-embed GGUF on the builder, not in git) or HAWKEYE_EMBED_FAKE=1.
+# No-op — and must not fail — otherwise. Documents stay FTS-only by default.
 embed:
 	python3 scripts/embed.py $(DB)
 

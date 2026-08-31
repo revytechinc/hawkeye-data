@@ -5,6 +5,7 @@ read-only root, a missing /usr, or no LLM/GPU.
 
 This is a sibling of sysutils/hawkeye (the binaries). The website is
 a separate project (hawkeye-www). Embeddings are optional: the builder
-may ship precomputed FLOAT32 rows, and Tier 0 FTS still works if empty.
+may ship precomputed playbook FLOAT32 rows (nomic-embed, local GGUF),
+and Tier 0 FTS still works if empty.
 
 WWW: https://github.com/revytechinc/hawkeye-data

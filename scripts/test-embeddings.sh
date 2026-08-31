@@ -59,6 +59,18 @@ HAWKEYE_EMBED_FAKE=1 sh "$ROOT/scripts/build-knowledge.sh" "$FAKE" \
 fake_n=$(sqlite3 "file:${FAKE}?mode=ro&immutable=1" "SELECT COUNT(*) FROM embeddings;")
 [ "$fake_n" -gt 0 ] || fail "SELECT COUNT(*) FROM embeddings is $fake_n after fake embedder (want > 0)"
 
+pb_total=$(sqlite3 "file:${FAKE}?mode=ro&immutable=1" "SELECT COUNT(*) FROM playbooks;")
+pb_emb=$(sqlite3 "file:${FAKE}?mode=ro&immutable=1" \
+	"SELECT COUNT(*) FROM embeddings WHERE target_table='playbooks';")
+[ "$pb_emb" -eq "$pb_total" ] || \
+	fail "playbook embeddings=$pb_emb want $pb_total (every playbook must be filled)"
+[ "$pb_total" -ge 16 ] || fail "playbook_count=$pb_total (want >= 16)"
+
+doc_emb=$(sqlite3 "file:${FAKE}?mode=ro&immutable=1" \
+	"SELECT COUNT(*) FROM embeddings WHERE target_table='documents';")
+[ "$doc_emb" -eq 0 ] || \
+	fail "default fake fill should be playbooks-only (got $doc_emb document rows; kit stays compact)"
+
 missing=$(sqlite3 "file:${FAKE}?mode=ro&immutable=1" \
 	"SELECT p.id FROM playbooks AS p
 	 LEFT JOIN embeddings AS e
@@ -108,6 +120,15 @@ if [ -f "$ROOT/dist/manifest.json" ]; then
 		|| fail "HAWKEYE_EMBED_FAKE=1 assemble.sh failed (see /tmp/hawkeye-embed-assemble.log)"
 	asm_n=$(sqlite3 "file:${ASM}?mode=ro&immutable=1" "SELECT COUNT(*) FROM embeddings;")
 	[ "$asm_n" -gt 0 ] || fail "assemble + fake embedder left embeddings empty"
+	asm_pb=$(sqlite3 "file:${ASM}?mode=ro&immutable=1" \
+		"SELECT COUNT(*) FROM embeddings WHERE target_table='playbooks';")
+	asm_docs=$(sqlite3 "file:${ASM}?mode=ro&immutable=1" \
+		"SELECT COUNT(*) FROM embeddings WHERE target_table='documents';")
+	asm_pbtot=$(sqlite3 "file:${ASM}?mode=ro&immutable=1" "SELECT COUNT(*) FROM playbooks;")
+	[ "$asm_pb" -eq "$asm_pbtot" ] || \
+		fail "assemble playbook embeddings=$asm_pb want $asm_pbtot"
+	[ "$asm_docs" -eq 0 ] || \
+		fail "assemble default should skip 1261 documents (got $asm_docs; would bloat the 17MiB kit)"
 	asm_missing=$(sqlite3 "file:${ASM}?mode=ro&immutable=1" \
 		"SELECT p.id FROM playbooks AS p
 		 LEFT JOIN embeddings AS e
@@ -119,7 +140,7 @@ if [ -f "$ROOT/dist/manifest.json" ]; then
 	delete|DELETE) ;;
 	*) fail "assemble journal_mode=$asm_jm (want delete)" ;;
 	esac
-	asm_note="assemble.sh + fake: embeddings=$asm_n journal_mode=$asm_jm"
+	asm_note="assemble.sh + fake: embeddings=$asm_n playbooks=$asm_pb documents=$asm_docs journal_mode=$asm_jm"
 else
 	asm_note="no dist/manifest.json (assemble path not exercised)"
 fi

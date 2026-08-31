@@ -24,6 +24,7 @@ import hashlib
 import json
 import math
 import os
+import shlex
 import sqlite3
 import struct
 import subprocess
@@ -33,8 +34,9 @@ from pathlib import Path
 FAKE_DIM = 8
 FAKE_MODEL = "fake-dim8"
 TEXT_CAP = 8192
-# Skip document rows when estimated blob bytes would exceed this unless
-# HAWKEYE_EMBED_DOCS=1 forces them. Playbooks always fill.
+# Documents are opt-in. A nomic-embed 768-d row is 3 KiB; 1261 handbook
+# documents would add ~4 MiB to a 17 MiB rescue kit. Playbooks (16 rows,
+# ~50 KiB) always fill when an embedder is configured.
 DEFAULT_DOC_CAP = 8 * 1024 * 1024
 
 
@@ -125,17 +127,29 @@ def resolve_backend() -> tuple[str, str, str]:
     return "skip", "", ""
 
 
-def llama_embed(bin_path: str, model: str, text: str) -> list[float]:
-    run_bin = bin_path
+def model_label(model: str) -> str:
+    """Store the GGUF basename, not a jail-specific path."""
+    name = Path(model).name if model else ""
+    return name or FAKE_MODEL
+
+
+def llama_argv(bin_path: str, model: str, text: str) -> list[str]:
+    """Match Hawkeye llm.embedArgs; llama-embedding omits --embedding."""
     prefix: list[str] = []
     if bin_path.endswith(".py") and not os.access(bin_path, os.X_OK):
         prefix = [sys.executable]
-    argv = [
+    base = Path(bin_path).name.lower()
+    embedding_flag = [] if "embedding" in base and "cli" not in base else ["--embedding"]
+    extra: list[str] = []
+    raw = getenv("HAWKEYE_EMBED_ARGS")
+    if raw:
+        extra = shlex.split(raw)
+    return [
         *prefix,
-        run_bin,
+        bin_path,
         "-m",
         model,
-        "--embedding",
+        *embedding_flag,
         "-p",
         text,
         "--no-display-prompt",
@@ -143,7 +157,12 @@ def llama_embed(bin_path: str, model: str, text: str) -> list[float]:
         "0",
         "--embd-output-format",
         "array",
+        *extra,
     ]
+
+
+def llama_embed(bin_path: str, model: str, text: str) -> list[float]:
+    argv = llama_argv(bin_path, model, text)
     try:
         r = subprocess.run(
             argv,
@@ -167,13 +186,16 @@ def llama_embed(bin_path: str, model: str, text: str) -> list[float]:
 
 
 def docs_wanted(n_docs: int, dim: int) -> bool:
+    """Documents are opt-in. Playbooks always fill.
+
+    HAWKEYE_EMBED_DOCS=1 forces document rows when estimated bytes stay
+    under HAWKEYE_EMBED_MAX_DOC_BYTES (default 8 MiB).
+    """
     flag = getenv("HAWKEYE_EMBED_DOCS")
-    if flag in ("0", "no", "false", "NO"):
+    if flag not in ("1", "yes", "true", "YES"):
         return False
-    if flag in ("1", "yes", "true", "YES"):
-        return True
     cap = int(getenv("HAWKEYE_EMBED_MAX_DOC_BYTES") or DEFAULT_DOC_CAP)
-    est = n_docs * dim * 4
+    est = n_docs * max(dim, 1) * 4
     return est <= cap
 
 
@@ -199,7 +221,7 @@ def fill_connection(conn: sqlite3.Connection, vacuum: bool = False) -> dict:
 
     n = 0
     dim = 0
-    stored_model = model or FAKE_MODEL
+    stored_model = model_label(model) if kind != "fake" else FAKE_MODEL
 
     def write_row(table: str, tid: str, vec: list[float]) -> None:
         nonlocal n, dim
@@ -228,7 +250,7 @@ def fill_connection(conn: sqlite3.Connection, vacuum: bool = False) -> dict:
             write_row("documents", did, embed_one(text))
     elif docs:
         print(
-            f"embed: skip {len(docs)} documents (size cap; set HAWKEYE_EMBED_DOCS=1 to force)",
+            f"embed: skip {len(docs)} documents (playbooks-only; HAWKEYE_EMBED_DOCS=1 to include)",
             file=sys.stderr,
         )
 
@@ -280,6 +302,19 @@ def cmd_self_test() -> int:
     a, b = fake_embed("alpha"), fake_embed("beta")
     if a == b:
         print("self-test: vectors not distinct", file=sys.stderr)
+        return 1
+    if model_label("/boot/hawkeye/models/nomic-embed-text-v1.5.Q8_0.gguf") != (
+        "nomic-embed-text-v1.5.Q8_0.gguf"
+    ):
+        print("self-test: model_label", file=sys.stderr)
+        return 1
+    argv = llama_argv("/usr/local/bin/llama-embedding", "m.gguf", "hi")
+    if "--embedding" in argv:
+        print("self-test: llama-embedding should omit --embedding", file=sys.stderr)
+        return 1
+    argv2 = llama_argv("/usr/local/bin/llama-cli", "m.gguf", "hi")
+    if "--embedding" not in argv2:
+        print("self-test: llama-cli should pass --embedding", file=sys.stderr)
         return 1
     print(f"self-test: ok dim={FAKE_DIM} model={FAKE_MODEL}")
     return 0

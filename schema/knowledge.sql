@@ -79,12 +79,14 @@ CREATE VIRTUAL TABLE playbooks_fts USING fts5(
     tokenize = 'unicode61'
 );
 
--- Optional vector table. scripts/embed.py fills it when a local embedder
--- is configured (HAWKEYE_EMBED_BIN + HAWKEYE_EMBED_MODEL, or
--- HAWKEYE_EMBED_FAKE=1 for tests). The default harvest with no model
--- leaves this empty. Hawkeye binaries (https://github.com/revytechinc/hawkeye)
--- MAY also FillEmbeddings at runtime. Tier 0 MUST ignore an empty table
--- and use FTS5 instead. Do not require sqlite-vec at build or on rescue.
+-- Optional vector table. scripts/embed.py fills PLAYBOOK rows when a
+-- local embedder is configured (HAWKEYE_EMBED_BIN + HAWKEYE_EMBED_MODEL,
+-- or HAWKEYE_EMBED_FAKE=1 for tests). Documents are opt-in
+-- (HAWKEYE_EMBED_DOCS=1) so a nomic-embed fill does not bloat the
+-- ~17 MiB rescue kit. The default harvest with no model leaves this
+-- empty. Hawkeye MAY also FillEmbeddings at runtime. Tier 0 MUST ignore
+-- an empty table and use FTS5 instead. Do not require sqlite-vec at
+-- build or on rescue.
 --
 -- vector is a little-endian blob of dim FLOAT32 values (Hawkeye PackF32),
 -- or a format understood by a sqlite-vec virtual table if that extension

@@ -115,12 +115,13 @@ make install-boot     # DESTDIR/boot/hawkeye
 
 ### Precomputed embeddings (optional)
 
-The default harvest **does not require** a model. If `HAWKEYE_EMBED_BIN` and `HAWKEYE_EMBED_MODEL` point at a local llama.cpp-style embedder, `scripts/embed.py` (called from assemble / finalize) fills `embeddings` for playbooks and, when size stays reasonable, documents. Tests use `HAWKEYE_EMBED_FAKE=1` (stable dim-8, no GGUF, no network).
+The default harvest **does not require** a model. If `HAWKEYE_EMBED_BIN` and `HAWKEYE_EMBED_MODEL` point at a local llama.cpp-style embedder (nomic-embed GGUF on the jail/builder, not in git), `scripts/embed.py` fills **playbook** rows only. That is enough for rescue ranking and keeps the ~17 MiB kit compact (16 × 768-d FLOAT32 ≈ 50 KiB). Documents stay FTS-only unless you set `HAWKEYE_EMBED_DOCS=1`. Tests use `HAWKEYE_EMBED_FAKE=1` (stable dim-8, no GGUF, no network) and require every playbook id to have a row.
 
 ```
 HAWKEYE_EMBED_BIN=/usr/local/bin/llama-cli \
-HAWKEYE_EMBED_MODEL=/usr/local/share/hawkeye/models/embed.gguf \
+HAWKEYE_EMBED_MODEL=/usr/local/share/hawkeye/models/nomic-embed-text-v1.5.Q8_0.gguf \
 make db
+# or, after assemble: make embed
 ```
 
 Do **not** commit GGUF files, API keys, or cloud embeddings. Local only. `make test` still passes when no embedder is on the builder.
